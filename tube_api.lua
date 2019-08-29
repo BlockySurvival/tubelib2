@@ -52,7 +52,7 @@ local function update1(self, pos, dir)
 	local fpos,fdir = self:walk_tube_line(pos, dir)
 	self:infotext(get_pos(pos, dir), fpos)
 	self:infotext(fpos, get_pos(pos, dir))
-	-- Translate pos/dir pointing to the secondary node into 
+	-- Translate pos/dir pointing to the secondary node into
 	-- spos/sdir of the secondary node pointing to the tube.
 	if fpos and fdir then
 		local spos, sdir = get_pos(fpos,fdir), Turn180Deg[fdir]
@@ -73,11 +73,11 @@ local function update2(self, pos1, dir1, pos2, dir2)
 		self:update_after_dig_tube(pos1, param2)
 		M(get_pos(pos1, dir1)):set_string("infotext", I("Maximum length reached!"))
 		M(get_pos(pos1, dir2)):set_string("infotext", I("Maximum length reached!"))
-		return false 
+		return false
 	end
 	self:infotext(fpos1, fpos2)
 	self:infotext(fpos2, fpos1)
-	-- Translate fpos/fdir pointing to the secondary node into 
+	-- Translate fpos/fdir pointing to the secondary node into
 	-- spos/sdir of the secondary node pointing to the tube.
 	local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
 	local spos2, sdir2 = get_pos(fpos2,fdir2), Turn180Deg[fdir2]
@@ -96,7 +96,7 @@ local function update3(self, pos, dir1, dir2)
 		local fpos2,fdir2,cnt2 = self:walk_tube_line(pos, dir2)
 		self:infotext(fpos1, fpos2)
 		self:infotext(fpos2, fpos1)
-		-- Translate fpos/fdir pointing to the secondary node into 
+		-- Translate fpos/fdir pointing to the secondary node into
 		-- spos/sdir of the secondary node pointing to the tube.
 		if fpos1 and fpos2 and fdir1 and fdir2 then
 			local spos1, sdir1 = get_pos(fpos1,fdir1), Turn180Deg[fdir1]
@@ -142,11 +142,11 @@ end
 function Tube:new(attr)
 	local o = {
 		dirs_to_check = attr.dirs_to_check or {1,2,3,4,5,6},
-		max_tube_length = attr.max_tube_length or 1000, 
-		primary_node_names = Tbl(attr.primary_node_names or {}), 
+		max_tube_length = attr.max_tube_length or 1000,
+		primary_node_names = Tbl(attr.primary_node_names or {}),
 		secondary_node_names = Tbl(attr.secondary_node_names or {}),
 		show_infotext = attr.show_infotext or false,
-		force_to_use_tubes = attr.force_to_use_tubes or false, 
+		force_to_use_tubes = attr.force_to_use_tubes or false,
 		clbk_after_place_tube = attr.after_place_tube,
 		tube_type = attr.tube_type or "unknown",
 		pairingList = {}, -- teleporting nodes
@@ -217,12 +217,12 @@ end
 function Tube:after_dig_tube(pos, oldnode)
 	-- [s1][f1]----[n1] x [n2]-----[f2][s2]
 	-- s..secondary, f..far, n..near, x..node to be removed
-	
+
 	-- update tubes
 	local dir1, dir2 = self:update_after_dig_tube(pos, oldnode.param2)
 	if dir1 then update1(self, pos, dir1) end
 	if dir2 then update1(self, pos, dir2) end
-	
+
 	-- Update secondary nodes, if right beside
 	dir1, dir2 = self:decode_param2(pos, oldnode.param2)
 	local npos1,ndir1 = get_pos(pos, dir1),Turn180Deg[dir1]
@@ -242,9 +242,10 @@ function Tube:get_connected_node_pos(pos, dir)
 	if self.connCache[key] and self.connCache[key][dir] then
 		local item = self.connCache[key][dir]
 		return item.pos2, Turn180Deg[item.dir2]
-	end	
-	local fpos,fdir = self:walk_tube_line(pos, dir)
-	local spos = get_pos(fpos,fdir)
+	end
+	local fpos, fdir = self:walk_tube_line(pos, dir)
+	if not (fpos and fdir) then return end
+	local spos = get_pos(fpos, fdir)
 	self:add_to_cache(pos, dir, spos, Turn180Deg[fdir])
 	self:add_to_cache(spos, Turn180Deg[fdir], pos, dir)
 	return spos, fdir
@@ -252,7 +253,7 @@ end
 
 -- Check if node at given position is a tubelib2 compatible node,
 -- able to receive and/or deliver items.
--- If dir == nil then node_pos = pos 
+-- If dir == nil then node_pos = pos
 -- Function returns the result (true/false), new pos, and the node
 function Tube:compatible_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
@@ -344,14 +345,14 @@ end
 -- Used by chat commands, when tubes are placed e.g. via WorldEdit
 function Tube:replace_tube_line(pos1, pos2)
 	if pos1 and pos2 and not vector.equals(pos1, pos2) then
-		local check = (((pos1.x == pos2.x) and 1) or 0) + 
-				(((pos1.y == pos2.y) and 1) or 0) + 
+		local check = (((pos1.x == pos2.x) and 1) or 0) +
+				(((pos1.y == pos2.y) and 1) or 0) +
 				(((pos1.z == pos2.z) and 1) or 0)
 		if check == 2 then
 			local v = vector.direction(pos1, pos2)
 			local dir1 = self:vector_to_dir(v)
 			local dir2 = Turn180Deg[dir1]
-		
+
 			self:replace_nodes(pos1, pos2, dir1, dir2)
 			update3(self, pos1, dir1, dir2)
 		end
