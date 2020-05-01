@@ -3,7 +3,7 @@
 	Tube Library 2
 	==============
 
-	Copyright (C) 2018 Joachim Stolberg
+	Copyright (C) 2018-2020 Joachim Stolberg
 
 	LGPLv2.1+
 	See LICENSE.txt for more information
@@ -123,6 +123,17 @@ function Tube:get_secondary_node(pos, dir)
 	end
 end
 
+-- Get special registered nodes at given position
+-- If dir == nil then node_pos = pos 
+-- Function returns node and new_pos or nil
+function Tube:get_special_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	if self.special_node_names[node.name] then
+		return node, npos
+	end
+end
+
 -- Check if node at given position is a secondary node
 -- If dir == nil then node_pos = pos 
 -- Function returns true/false
@@ -130,6 +141,15 @@ function Tube:is_secondary_node(pos, dir)
 	local npos = vector.add(pos, Dir6dToVector[dir or 0])
 	local node = self:get_node_lvm(npos)
 	return self.secondary_node_names[node.name]
+end
+
+-- Check if node at given position is a special node
+-- If dir == nil then node_pos = pos 
+-- Function returns true/false
+function Tube:is_special_node(pos, dir)
+	local npos = vector.add(pos, Dir6dToVector[dir or 0])
+	local node = self:get_node_lvm(npos)
+	return self.special_node_names[node.name]
 end
 
 -- Check if node has a connection on the given dir
@@ -140,9 +160,9 @@ end
 function Tube:get_next_tube(pos, dir)
 	local param2, npos = self:get_primary_node_param2(pos, dir)
 	if param2 then
-		local val = Param2ToDir[param2 % 32]
+		local val = Param2ToDir[param2 % 32] or 0
 		local dir1, dir2 = math.floor(val / 10), val % 10
-		local num_conn = math.floor(param2 / 32)
+		local num_conn = math.floor(param2 / 32) or 0
 		if Turn180Deg[dir] == dir1 then
 			return npos, dir2, num_conn
 		else
@@ -154,11 +174,14 @@ end
 
 -- Return param2 and tube type ("A"/"S")
 function Tube:encode_param2(dir1, dir2, num_conn)
-	if dir1 > dir2 then
-		dir1, dir2 = dir2, dir1
+	if dir1 and dir2 and num_conn then
+		if dir1 > dir2 then
+			dir1, dir2 = dir2, dir1
+		end
+		local param2, _type = unpack(DirToParam2[dir1 * 10 + dir2] or {0, "S"})
+		return (num_conn * 32) + param2, _type
 	end
-	local param2, _type = unpack(DirToParam2[dir1 * 10 + dir2] or {0, "S"})
-	return (num_conn * 32) + param2, _type
+	return 0, "S"
 end
 
 
@@ -389,9 +412,6 @@ function Tube:walk_tube_line(pos, dir)
 			end
 			pos, dir = new_pos, new_dir
 			cnt = cnt + 1
-		end
-		if cnt > self.max_tube_length then
-			return
 		end
 		if cnt > 0 then
 			return pos, dir, cnt
